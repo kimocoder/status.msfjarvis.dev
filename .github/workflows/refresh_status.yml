@@ -1,0 +1,39 @@
+name: 'Update status page'
+on:
+  schedule:
+   - cron: '10 * * * *'
+  push:
+
+jobs:
+  update-status-page:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install traceroute
+        run: sudo apt-get install traceroute -y
+      - name: Checkout config
+        uses: actions/checkout@v2
+      - name: Checkout static_status
+        uses: actions/checkout@v2
+        with:
+          repository: Cyclenerd/static_status
+          path: static_status
+          clean: false
+      - name: Generate status page
+        run: |
+          mkdir -p static_status/status/
+          cp config static_status/
+          cp status_hostname_list.txt static_status/
+          cp CNAME static_status/status/
+          cd static_status/
+          rm status_maintenance_text.txt
+          ./status.sh
+
+      - name: Deploy
+        env:
+          ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          PUBLISH_BRANCH: gh-pages
+          PUBLISH_DIR: ./static_status/status
+          SCRIPT_MODE: true
+        run: |
+          wget https://raw.githubusercontent.com/peaceiris/actions-gh-pages/v2/entrypoint.sh
+          bash ./entrypoint.sh
